@@ -299,10 +299,27 @@ describe('RemAdapter', () => {
         timestamp: true,
       });
 
-      expect(result.remId).toBeDefined();
-      expect(result.content).toContain('Journal entry');
-      expect(result.content).toMatch(/^\[\d{1,2}:\d{2}:\d{2}/); // No leading space when prefix is empty
-      expect(result.content).toMatch(/\[\d{1,2}:\d{2}:\d{2}/); // Timestamp pattern
+      expect(result.remIds).toBeDefined();
+      expect(result.titles[0]).toContain('Journal entry');
+      expect(result.titles[0]).toMatch(/^\[\d{1,2}:\d{2}:\d{2}/); // No leading space when prefix is empty
+      expect(result.titles[0]).toMatch(/\[\d{1,2}:\d{2}:\d{2}/); // Timestamp pattern
+    });
+
+    it('should append markdown tree with timestamp title to daily document when timestamp is enabled', async () => {
+      const result = await adapter.appendJournal({
+        content: 'Bullet 1\n- Bullet 2\n- Bullet 3',
+        timestamp: true,
+      });
+
+      expect(result.remIds).toBeDefined();
+      expect(result.titles[0]).toMatch(/^\[\d{1,2}:\d{2}:\d{2}/); // No leading space when prefix is empty
+      expect(result.titles[0]).toMatch(/\[\d{1,2}:\d{2}:\d{2}/); // Timestamp pattern
+
+      const rem = await plugin.rem.findOne(result.remIds[0]);
+      const children = await rem!.getChildrenRem();
+      expect(children).toBeDefined();
+      expect(children).toHaveLength(3);
+      expect(children.map((c) => c.text?.[0])).toEqual(['Bullet 1', 'Bullet 2', 'Bullet 3']);
     });
 
     it('should append without timestamp when disabled', async () => {
@@ -311,8 +328,8 @@ describe('RemAdapter', () => {
         timestamp: false,
       });
 
-      expect(result.content).toBe('No timestamp entry');
-      expect(result.content).not.toMatch(/\[\d{1,2}:\d{2}:\d{2}/);
+      expect(result.titles[0]).toBe('No timestamp entry');
+      expect(result.titles[0]).not.toMatch(/\[\d{1,2}:\d{2}:\d{2}/);
     });
 
     it('should use settings for timestamp default', async () => {
@@ -322,7 +339,7 @@ describe('RemAdapter', () => {
         content: 'Entry with setting default',
       });
 
-      expect(result.content).not.toMatch(/\[\d{1,2}:\d{2}:\d{2}/);
+      expect(result.titles[0]).not.toMatch(/\[\d{1,2}:\d{2}:\d{2}/);
     });
 
     it('should use custom journal prefix', async () => {
@@ -332,9 +349,10 @@ describe('RemAdapter', () => {
         content: 'Custom prefix entry',
       });
 
-      expect(result.content).toContain('[AI]');
-      expect(result.content).not.toMatch(/^ /);
+      expect(result.titles[0]).toContain('[AI]');
+      expect(result.titles[0]).not.toMatch(/^ /);
     });
+
   });
 
   describe('search', () => {
@@ -1122,8 +1140,7 @@ describe('RemAdapter', () => {
         title: 'New title',
       });
 
-      expect(result.success).toBe(true);
-      expect(result.remId).toBe('update_test');
+      expect(result.remIds).toContain('update_test');
 
       const updatedRem = await plugin.rem.findOne('update_test');
       expect(updatedRem!.text).toEqual(['New title']);
@@ -1132,11 +1149,12 @@ describe('RemAdapter', () => {
     it('should append content as children', async () => {
       const testRem = plugin.addTestRem('append_test', 'Parent');
 
-      await adapter.updateNote({
+      const result = await adapter.updateNote({
         remId: 'append_test',
         appendContent: 'New line 1\nNew line 2',
       });
 
+      expect(result.remIds).toHaveLength(2); // 2 new lines
       const children = await testRem.getChildrenRem();
       expect(children).toHaveLength(2);
     });
@@ -1147,11 +1165,12 @@ describe('RemAdapter', () => {
       await oldChild.setParent(testRem);
       adapter.updateSettings({ acceptReplaceOperation: true });
 
-      await adapter.updateNote({
+      const result = await adapter.updateNote({
         remId: 'replace_test',
         replaceContent: 'New line 1\nNew line 2',
       });
 
+      expect(result.remIds).toHaveLength(2);
       const children = await testRem.getChildrenRem();
       expect(children).toHaveLength(2);
       expect(children.map((c) => c.text?.[0])).toEqual(['New line 1', 'New line 2']);
@@ -1228,12 +1247,15 @@ describe('RemAdapter', () => {
       const result = await adapter.updateNote({
         remId: 'multi_update',
         title: 'Updated',
-        appendContent: 'New content',
+        appendContent: '- New content1\n- More content2',
         addTags: ['NewTag'],
       });
 
-      expect(result.success).toBe(true);
+      expect(result.remIds).toContain('multi_update');
       expect(testRem.text).toEqual(['Updated']);
+      const children = await testRem.getChildrenRem();
+      expect(children).toHaveLength(2);
+      expect(children.map((c) => c.text?.[0])).toEqual(['New content1', 'More content2']);
     });
 
     it('should throw error for non-existent note', async () => {
