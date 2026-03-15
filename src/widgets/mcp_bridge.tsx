@@ -471,10 +471,15 @@ function AutomationBridgeWidget() {
                               ? '#f59e0b'
                               : '#6b7280',
                     fontWeight: 600,
-                    width: '12px',
+                    minWidth: '24px',
+                    whiteSpace: 'nowrap',
+                    display: 'flex',
+                    overflow: 'hidden',
                   }}
                 >
                   {actionIcons[entry.action]}
+                  {entry.remIds && entry.remIds.length > 1 &&
+                  <span>{entry.remIds.length}</span>}
                 </span>
                 <span style={{ color: '#9ca3af', flexShrink: 0 }}>
                   {entry.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -488,7 +493,7 @@ function AutomationBridgeWidget() {
                     color: '#374151',
                   }}
                 >
-                  {entry.title}
+                  {entry.titles[0]}
                 </span>
               </div>
             ))}
