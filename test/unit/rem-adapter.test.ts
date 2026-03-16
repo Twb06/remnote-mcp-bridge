@@ -1,7 +1,7 @@
 /**
  * Tests for RemNote API Adapter
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { RemType, BuiltInPowerupCodes } from '@remnote/plugin-sdk';
 import { RemAdapter } from '../../src/api/rem-adapter';
 import { MockRemNotePlugin, MockRem } from '../helpers/mocks';
@@ -64,7 +64,7 @@ describe('RemAdapter', () => {
 
       expect(result.remIds[0]).toBeDefined();
       expect(result.titles[0]).toBe('Test Note');
-      expect(plugin.rem.createRem).toHaveBeenCalled();
+      expect(plugin.rem.createSingleRemWithMarkdown).toHaveBeenCalled();
     });
 
     it('should create a note with title and markdown content', async () => {
@@ -156,7 +156,7 @@ describe('RemAdapter', () => {
       });
 
       expect(result.remIds[0]).toBeDefined();
-      expect(plugin.rem.createTreeWithMarkdown).toHaveBeenCalled();
+      expect(plugin.rem.createTreeWithMarkdown).toHaveBeenCalledWith('dummy\n  Just some plain text', expect.anything());
     });
 
 
@@ -181,7 +181,32 @@ describe('RemAdapter', () => {
       expect(result.remIds).toBeDefined();
       expect(result.remIds).toHaveLength(3);
       expect(plugin.rem.createTreeWithMarkdown).toHaveBeenCalledWith(
-        'Line 1\nLine 2',
+        'dummy\n  Line 1\n  Line 2',
+        result.remIds[0]
+      );
+    });
+
+    it('should support markdown in title', async () => {
+      const result = await adapter.createNote({
+        title: 'Note with [Link](url)',
+      });
+
+      expect(result.titles[0]).toBe('Note with [Link](url)');
+      expect(plugin.rem.createSingleRemWithMarkdown).toHaveBeenCalledWith(
+        'Note with [Link](url)',
+        expect.anything()
+      );
+    });
+
+    it('should use createSingleRemWithMarkdown for single-line content', async () => {
+      const result = await adapter.createNote({
+        title: 'Title',
+        content: 'Single line [link](url)',
+      });
+
+      expect(result.remIds).toHaveLength(2);
+      expect(plugin.rem.createTreeWithMarkdown).toHaveBeenCalledWith(
+        'dummy\n  Single line [link](url)',
         result.remIds[0]
       );
     });
@@ -236,7 +261,8 @@ describe('RemAdapter', () => {
         `    - Correct option`,
         `    - Wrong option`
       ].join('\n');
-      expect(plugin.rem.createTreeWithMarkdown).toHaveBeenCalledWith(expectedContent, rootRem!._id);
+      const dummyContent = `dummy\n${expectedContent.split('\n').map(l => '  ' + l).join('\n')}`;
+      expect(plugin.rem.createTreeWithMarkdown).toHaveBeenCalledWith(dummyContent, rootRem!._id);
     });
 
     it('should apply tags only to root when title exists', async () => {
@@ -269,7 +295,8 @@ describe('RemAdapter', () => {
       const nested = plugin.addTestRem('nested', 'Nested');
       await nested.setParent(top1);
 
-      plugin.rem.createTreeWithMarkdown.mockResolvedValueOnce([top1, top2, nested]);
+      const dummyRoot = plugin.addTestRem('dummy', 'dummy');
+      plugin.rem.createTreeWithMarkdown.mockResolvedValueOnce([dummyRoot, top1, top2, nested]);
 
        await adapter.createNote({
         content: '- Top 1\n  - Nested\n- Top 2',
@@ -279,6 +306,19 @@ describe('RemAdapter', () => {
       expect(top1.getTags()).toContain(tagRem._id);
       expect(top2.getTags()).toContain(tagRem._id);
       expect(nested.getTags()).not.toContain(tagRem._id);
+    });
+
+    it('should correctly parse ordered lists as the first line using plain dummy root', async () => {
+      const top1 = plugin.addTestRem('top1', '1. Item 1');
+      const dummyRoot = plugin.addTestRem('dummy', 'dummy');
+      plugin.rem.createTreeWithMarkdown.mockResolvedValueOnce([dummyRoot, top1]);
+
+      await adapter.createNote({
+        content: '1. Item 1'
+      });
+
+      // Verify dummy root was plain 'dummy' and content was indented
+      expect(plugin.rem.createTreeWithMarkdown).toHaveBeenCalledWith('dummy\n  1. Item 1', expect.anything());
     });
   });
 
@@ -301,8 +341,8 @@ describe('RemAdapter', () => {
 
       expect(result.remIds).toBeDefined();
       expect(result.titles[0]).toContain('Journal entry');
-      expect(result.titles[0]).toMatch(/^\[\d{1,2}:\d{2}:\d{2}/); // No leading space when prefix is empty
-      expect(result.titles[0]).toMatch(/\[\d{1,2}:\d{2}:\d{2}/); // Timestamp pattern
+      // Matches [ followed by optional non-digits (like '下午') then the time
+      expect(result.titles[0]).toMatch(/^\[[^0-9]*?\d{1,2}:\d{2}:\d{2}/);
     });
 
     it('should append markdown tree with timestamp title to daily document when timestamp is enabled', async () => {
@@ -312,8 +352,9 @@ describe('RemAdapter', () => {
       });
 
       expect(result.remIds).toBeDefined();
-      expect(result.titles[0]).toMatch(/^\[\d{1,2}:\d{2}:\d{2}/); // No leading space when prefix is empty
-      expect(result.titles[0]).toMatch(/\[\d{1,2}:\d{2}:\d{2}/); // Timestamp pattern
+      // Matches [ followed by optional non-digits (like '下午') then the time
+      expect(result.titles[0]).toMatch(/^\[[^0-9]*?\d{1,2}:\d{2}:\d{2}/);
+      expect(result.titles[0]).toMatch(/\[[^0-9]*?\d{1,2}:\d{2}:\d{2}/); // Timestamp pattern
 
       const rem = await plugin.rem.findOne(result.remIds[0]);
       const children = await rem!.getChildrenRem();
@@ -1144,6 +1185,20 @@ describe('RemAdapter', () => {
 
       const updatedRem = await plugin.rem.findOne('update_test');
       expect(updatedRem!.text).toEqual(['New title']);
+    });
+
+    it('should update note title with markdown and parse it', async () => {
+      plugin.addTestRem('update_1', 'Original title');
+      vi.spyOn(plugin.richText, 'parseFromMarkdown').mockImplementation(async (s: string) => [s]);
+
+      await adapter.updateNote({
+        remId: 'update_1',
+        title: 'New [Link](url)',
+      });
+
+      expect(plugin.richText.parseFromMarkdown).toHaveBeenCalledWith('New [Link](url)');
+      const rem = await plugin.rem.findOne('update_1');
+      expect(rem!.text).toEqual(['New [Link](url)']);
     });
 
     it('should append content as children', async () => {

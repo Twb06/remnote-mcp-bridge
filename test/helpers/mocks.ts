@@ -241,6 +241,21 @@ export class MockRemNotePlugin implements Partial<ReactRNPlugin> {
       return this.remsByName.get(name) || null;
     }),
 
+    createSingleRemWithMarkdown: vi.fn(
+      async (markdown: string, parentId?: string): Promise<MockRem> => {
+        const id = `rem_single_${this.nextId++}`;
+        const richText = await this.richText.parseFromMarkdown(markdown);
+        const rem = new MockRem(id, '');
+        rem.text = richText;
+        this.rems.set(id, rem);
+        if (parentId) {
+          const parentRem = this.rems.get(parentId);
+          if (parentRem) await rem.setParent(parentRem as never);
+        }
+        return rem;
+      }
+    ),
+
     createTreeWithMarkdown: vi.fn(async (markdown: string, parentId?: string): Promise<MockRem[]> => {
       const allCreated: MockRem[] = [];
 
@@ -287,6 +302,24 @@ export class MockRemNotePlugin implements Partial<ReactRNPlugin> {
       }
 
       return allCreated;
+    }),
+  };
+
+  richText = {
+    parseFromMarkdown: vi.fn(async (markdown: string): Promise<RichTextInterface> => {
+      // Basic mock parsing for links: [text](url)
+      const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/;
+      const match = markdown.match(linkRegex);
+      if (match) {
+        return [
+          {
+            i: 'm',
+            text: match[1],
+            url: match[2],
+          },
+        ];
+      }
+      return [markdown];
     }),
   };
 
