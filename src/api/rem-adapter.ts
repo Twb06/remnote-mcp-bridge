@@ -908,8 +908,9 @@ export class RemAdapter {
     const dummyRoot = tree[0];
     const directChildren = await dummyRoot.getChildrenRem();
 
-    // Move all direct children to the same parent as the dummy root.
-    // If parentId is null/undefined, they move to the top level (no parent).
+    // Move all direct children to the same parent as the dummy root when a concrete
+    // target parent exists. When the dummy root lives at the top level, the SDK should
+    // leave promoted children top-level after the dummy root is removed.
     const targetParent = await this.plugin.rem.findOne(parentId);
 
     for (const child of directChildren) {

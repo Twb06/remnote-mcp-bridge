@@ -26,8 +26,7 @@ When changing contracts, check all three repos.
 
 ### External Bridge Action Surface
 
-- `create_note` (supports cards via `backText`)
-- `create_note_md` (hierarchical creation via native markdown SDK)
+- `create_note` (simple note creation, hierarchical markdown import, markdown flashcards)
 - `search`
 - `search_by_tag`
 - `read_note`

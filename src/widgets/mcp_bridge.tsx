@@ -478,8 +478,7 @@ function AutomationBridgeWidget() {
                   }}
                 >
                   {actionIcons[entry.action]}
-                  {entry.remIds && entry.remIds.length > 1 &&
-                  <span>{entry.remIds.length}</span>}
+                  {entry.remIds && entry.remIds.length > 1 && <span>{entry.remIds.length}</span>}
                 </span>
                 <span style={{ color: '#9ca3af', flexShrink: 0 }}>
                   {entry.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

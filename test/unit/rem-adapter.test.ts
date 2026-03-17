@@ -54,7 +54,9 @@ describe('RemAdapter', () => {
     });
 
     it('should reject if no title and no content provided', async () => {
-      await expect(adapter.createNote({})).rejects.toThrow('create_note requires either title or content');
+      await expect(adapter.createNote({})).rejects.toThrow(
+        'create_note requires either title or content'
+      );
     });
 
     it('should create a basic note', async () => {
@@ -147,7 +149,6 @@ describe('RemAdapter', () => {
       expect(parentRem!._id).toBe('default_parent');
     });
 
-
     it('should create a note with only plain text content with default parent from settings', async () => {
       plugin.addTestRem('default_parent', 'Default Parent');
       adapter.updateSettings({ defaultParentId: 'default_parent' });
@@ -156,9 +157,11 @@ describe('RemAdapter', () => {
       });
 
       expect(result.remIds[0]).toBeDefined();
-      expect(plugin.rem.createTreeWithMarkdown).toHaveBeenCalledWith('dummy\n  Just some plain text', expect.anything());
+      expect(plugin.rem.createTreeWithMarkdown).toHaveBeenCalledWith(
+        'dummy\n  Just some plain text',
+        expect.anything()
+      );
     });
-
 
     it('should create a note with only markdown content with default parent from settings', async () => {
       plugin.addTestRem('default_parent', 'Default Parent');
@@ -170,6 +173,26 @@ describe('RemAdapter', () => {
       expect(result.remIds).toBeDefined();
       expect(plugin.rem.createTreeWithMarkdown).toHaveBeenCalled();
       expect(result.remIds).toHaveLength(3);
+    });
+
+    it('should preserve top-level structure for content-only create without parent', async () => {
+      const top = plugin.addTestRem('top_level', 'Top Level');
+      const child = plugin.addTestRem('child_level', 'Child Level');
+      await child.setParent(top);
+      const dummyRoot = plugin.addTestRem('dummy_root', 'dummy');
+      plugin.rem.createTreeWithMarkdown.mockResolvedValueOnce([dummyRoot, top, child]);
+
+      const result = await adapter.createNote({
+        content: '1. Top Level\n  - Child Level',
+      });
+
+      expect(result.remIds).toEqual(['top_level', 'child_level']);
+      expect(plugin.rem.createTreeWithMarkdown).toHaveBeenCalledWith(
+        'dummy\n  1. Top Level\n    - Child Level',
+        ''
+      );
+      expect(await top.getParentRem()).toBeUndefined();
+      expect((await child.getParentRem())?._id).toBe('top_level');
     });
 
     it('should skip empty content lines', async () => {
@@ -232,8 +255,8 @@ describe('RemAdapter', () => {
           `    - Second list item`,
           `  - Multiple-choice >>A)`,
           `    - Correct option`,
-          `    - Wrong option`
-        ].join('\n')
+          `    - Wrong option`,
+        ].join('\n'),
       });
 
       expect(result.remIds[0]).toBeDefined();
@@ -259,9 +282,12 @@ describe('RemAdapter', () => {
         `    - Second list item`,
         `  - Multiple-choice >>A)`,
         `    - Correct option`,
-        `    - Wrong option`
+        `    - Wrong option`,
       ].join('\n');
-      const dummyContent = `dummy\n${expectedContent.split('\n').map(l => '  ' + l).join('\n')}`;
+      const dummyContent = `dummy\n${expectedContent
+        .split('\n')
+        .map((l) => '  ' + l)
+        .join('\n')}`;
       expect(plugin.rem.createTreeWithMarkdown).toHaveBeenCalledWith(dummyContent, rootRem!._id);
     });
 
@@ -271,7 +297,7 @@ describe('RemAdapter', () => {
       const result = await adapter.createNote({
         title: 'Tagged Root',
         content: '- Child 1\n- Child 2',
-        tags: ['tree-tag']
+        tags: ['tree-tag'],
       });
 
       const rootRemId = result.remIds[0];
@@ -298,9 +324,9 @@ describe('RemAdapter', () => {
       const dummyRoot = plugin.addTestRem('dummy', 'dummy');
       plugin.rem.createTreeWithMarkdown.mockResolvedValueOnce([dummyRoot, top1, top2, nested]);
 
-       await adapter.createNote({
+      await adapter.createNote({
         content: '- Top 1\n  - Nested\n- Top 2',
-        tags: ['top-tag']
+        tags: ['top-tag'],
       });
 
       expect(top1.getTags()).toContain(tagRem._id);
@@ -314,11 +340,14 @@ describe('RemAdapter', () => {
       plugin.rem.createTreeWithMarkdown.mockResolvedValueOnce([dummyRoot, top1]);
 
       await adapter.createNote({
-        content: '1. Item 1'
+        content: '1. Item 1',
       });
 
       // Verify dummy root was plain 'dummy' and content was indented
-      expect(plugin.rem.createTreeWithMarkdown).toHaveBeenCalledWith('dummy\n  1. Item 1', expect.anything());
+      expect(plugin.rem.createTreeWithMarkdown).toHaveBeenCalledWith(
+        'dummy\n  1. Item 1',
+        expect.anything()
+      );
     });
   });
 
@@ -393,7 +422,6 @@ describe('RemAdapter', () => {
       expect(result.titles[0]).toContain('[AI]');
       expect(result.titles[0]).not.toMatch(/^ /);
     });
-
   });
 
   describe('search', () => {

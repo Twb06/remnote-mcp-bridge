@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic
 Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.9.0] - 2026-03-17
 
 ### Added
 
@@ -18,6 +18,7 @@ Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 - Standardized mutating actions (`createNote`, `updateNote`, `appendJournal`) to return plural response format `{ remIds, titles }`.
 - Refined tag application rules with hierarchical markdown: tags are only applied to the created root or top-level Rems, not to all nested descendants.
+- Aligned bridge docs/tests with the unified `create_note` contract and added top-level content-only create coverage.
 
 ## [0.8.0] - 2026-03-04
 
