@@ -15,11 +15,14 @@ This path runs through the same action handler used by WebSocket requests in `sr
 ## Prerequisites
 
 1. Start RemNote with this plugin enabled.
-2. Open the bridge panel (right sidebar widget: **Automation Bridge (OpenClaw, CLI, MCP...)**).
-3. Open RemNote Developer Tools:
+2. Open RemNote Developer Tools:
    - macOS: `Cmd+Option+I`
    - Windows/Linux: `Ctrl+Shift+I`
-4. In the Developer Console context picker, select the plugin iframe context (not the top page context).
+3. In the Developer Console context picker, select the plugin iframe context (not the top page context).
+
+The bridge runtime now starts automatically on plugin activation. Opening the Automation Bridge sidebar panel is
+optional here and mainly helps if you want to keep status/logs visible while debugging. For connection and reconnect
+behavior, see the [Connection Lifecycle Guide](./connection-lifecycle.md).
 
 ## Paste once: console helper
 
@@ -71,7 +74,7 @@ Use a known Rem ID (for example `testRemId` from `create_note`).
 - `Timed out waiting for result...`: Usually wrong console execution context. Re-select plugin iframe context.
 - After Chrome/RemNote restart, there can be multiple `index.html (localhost:8080)` contexts in DevTools. If one
   times out, switch to the other `localhost:8080` context, paste helper again, and retry.
-- If the bridge widget is not visible/open yet, open the sidebar panel first. The event listener is registered by the
-  widget runtime.
+- If you want a visual connection check while debugging, open the Automation Bridge panel. The background runtime still
+  exists even when the panel stays closed.
 - `Unknown action: ...`: The action string does not match one of the supported names exactly.
 - `Note not found: ...`: `remId` does not exist in the current KB.

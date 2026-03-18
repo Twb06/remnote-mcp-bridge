@@ -44,6 +44,8 @@ Versioning](https://semver.org/spec/v2.0.0.html).
   on raw window focus.
 - Reframed `README.md` around two first-class companion paths, giving `remnote-mcp-server` and `remnote-cli` equal
   weight in the overview, privacy, installation, and architecture sections.
+- Fixed stale DevTools debugging guides to reflect that the background runtime starts on plugin activation and the
+  sidebar panel is optional for status/log visibility.
 
 ## [0.9.0] - 2026-03-17
 

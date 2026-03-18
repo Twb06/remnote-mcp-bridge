@@ -8,11 +8,12 @@ If you have not yet run the plugin locally, start with:
 
 - [Run The Plugin Locally (Beginner Guide)](./development-run-plugin-locally.md)
 
-## 1) Keep bridge panel visible and open helper source
+## 1) Open helper source and optionally keep the bridge panel visible
 
 Before running commands from DevTools:
 
-- Make sure the **Automation Bridge (OpenClaw, CLI, MCP...)** panel is visible in RemNote.
+- The **Automation Bridge (OpenClaw, CLI, MCP...)** panel is optional. Keep it visible only if you want live status
+  and logs while debugging.
 - Open helper source file so you can copy it easily:
   - [`docs/guides/js/development-execute-bridge-commands-00-helper.js`](./js/development-execute-bridge-commands-00-helper.js)
 
@@ -69,11 +70,13 @@ Expected result: `{ results: [...] }` with `remId`, `title`, and optional `conte
   - Usually wrong `localhost:8080` context selected.
   - Re-select the other `index.html (localhost:8080)` entry, paste helper again, retry.
 - No events/responses:
-  - Ensure bridge sidebar panel is open and visible; listener is registered by widget runtime.
+  - The bridge runtime should already be active in the background.
+  - If you want a quick visual sanity check, open the Automation Bridge panel and compare its status/logs.
 - Helper functions undefined:
   - Paste helper again in the currently selected console context.
 
 ## Related guides
 
 - [Execute Bridge Commands from RemNote Developer Console](./development-execute-bridge-commands.md)
+- [Connection Lifecycle Guide](./connection-lifecycle.md)
 - [Run The Plugin Locally (Beginner Guide)](./development-run-plugin-locally.md)
