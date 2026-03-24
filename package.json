@@ -3,6 +3,9 @@
   "name": "remnote-mcp-bridge",
   "version": "0.10.0",
   "license": "MIT",
+  "engines": {
+    "node": ">=20.19.0"
+  },
   "scripts": {
     "check-types": "tsc",
     "dev": "cross-env NODE_ENV=development webpack-dev-server --color --progress --no-open",
@@ -12,8 +15,8 @@
     "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui",
     "typecheck": "tsc --noEmit",
-    "lint": "ESLINT_USE_FLAT_CONFIG=false npx eslint src test --ext .ts,.tsx",
-    "lint:fix": "ESLINT_USE_FLAT_CONFIG=false npx eslint src test --ext .ts,.tsx --fix",
+    "lint": "npx eslint \"src/**/*.{ts,tsx}\" \"test/**/*.{ts,tsx}\"",
+    "lint:fix": "npx eslint \"src/**/*.{ts,tsx}\" \"test/**/*.{ts,tsx}\" --fix",
     "format": "npx prettier --write \"src/**/*.{ts,tsx}\" \"test/**/*.{ts,tsx}\"",
     "format:check": "npx prettier --check \"src/**/*.{ts,tsx}\" \"test/**/*.{ts,tsx}\"",
     "quality": "./code-quality.sh",
