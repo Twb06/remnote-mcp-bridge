@@ -393,11 +393,13 @@ function AutomationBridgeWidget() {
                   height: '16px',
                   minHeight: '16px',
                   backgroundColor: 'currentColor',
-                  maskImage: 'url(https://www.remnote.com/offline_assets/svg_icons/uncolored/copy-v2.svg)',
+                  maskImage:
+                    'url(https://www.remnote.com/offline_assets/svg_icons/uncolored/copy-v2.svg)',
                   maskRepeat: 'no-repeat',
                   maskPosition: 'center center',
                   maskSize: 'contain',
-                  WebkitMaskImage: 'url(https://www.remnote.com/offline_assets/svg_icons/uncolored/copy-v2.svg)',
+                  WebkitMaskImage:
+                    'url(https://www.remnote.com/offline_assets/svg_icons/uncolored/copy-v2.svg)',
                   WebkitMaskRepeat: 'no-repeat',
                   WebkitMaskPosition: 'center center',
                   WebkitMaskSize: 'contain',
@@ -592,7 +594,14 @@ function AutomationBridgeWidget() {
               };
 
               return (
-                <div key={index} style={{ borderBottom: index < history.length - 1 ? 'none' : '1px solid #e5e7eb', display: 'flex', flexDirection: 'column' }}>
+                <div
+                  key={index}
+                  style={{
+                    borderBottom: index < history.length - 1 ? 'none' : '1px solid #e5e7eb',
+                    display: 'flex',
+                    flexDirection: 'column',
+                  }}
+                >
                   {/* Main Row */}
                   {renderActionRow(
                     false,
