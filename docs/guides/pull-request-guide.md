@@ -10,13 +10,9 @@ This repository is part of a three-repo bridge surface:
 
 When a feature or protocol change affects more than one repo, the pull requests must stay in sync.
 
-## Required For Every Pull Request
-
-- Update all relevant documentation.
-- Update or add tests for the changed behavior.
-- Extend integration coverage when the feature should be validated end to end.
-- Update `CHANGELOG.md`.
-- Merge the latest `master` from the target repository into your source branch before opening or updating the PR.
+Use the [repository pull request template](../../.github/PULL_REQUEST_TEMPLATE.md) for the submission checklist.
+This guide explains the cross-repo policy behind that checklist.
+that checklist.
 
 ## Cross-Repo Parity
 
@@ -50,16 +46,3 @@ If a new feature belongs on the shared external surface, extend integration cove
 
 If integration coverage depends on a live RemNote object that cannot yet be created through the companion, document
 the temporary setup and keep the test automated as far as possible.
-
-## What The PR Description Should Contain
-
-Include enough context for a reviewer to verify parity and coverage quickly.
-
-- Short summary of the change
-- Affected repos
-- Links to related PRs in bridge/server/CLI when applicable
-- Which docs were updated
-- Which tests were updated or added
-- Whether integration coverage was extended
-- Confirmation that the latest target `master` was merged
-- Any manual RemNote validation still required
