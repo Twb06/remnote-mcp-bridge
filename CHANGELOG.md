@@ -8,7 +8,7 @@ Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
-- Added interactive history entries: expandable child items view, hover actions panel with copy-reference button, and click-to-open behavior on titles.
+- Added interactive history entries: expandable child items view, hover actions panel with copy-reference button, and click-to-open behavior on titles (thanks to @Twb06).
 
 ### Changed
 
