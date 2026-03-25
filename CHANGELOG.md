@@ -7,6 +7,9 @@ Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- Added interactive history entries: expandable child items view, hover actions panel with copy-reference button, and click-to-open behavior on titles.
+
 ### Changed
 
 - Moved GitHub Actions CI to the shared reusable workflow in `robert7/workflows`, keeping local `main` push and pull
