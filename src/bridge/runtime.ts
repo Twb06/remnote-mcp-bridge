@@ -31,6 +31,7 @@ export interface SessionStats {
 }
 
 export interface HistoryEntry {
+  id: string;
   timestamp: Date;
   action: 'create' | 'update' | 'journal' | 'search' | 'read';
   titles: string[];
@@ -64,6 +65,7 @@ export interface BridgeRuntime {
 const MAX_LOGS = 50;
 const MAX_HISTORY = 10;
 const AUTO_NUDGE_COOLDOWN_MS = 15_000;
+let historyIdCounter = 0;
 
 class BridgeRuntimeController implements BridgeRuntime {
   private readonly adapter: RemAdapter;
@@ -251,10 +253,10 @@ class BridgeRuntimeController implements BridgeRuntime {
     titles: string[],
     remIds?: string[]
   ): void {
-    this.history = [{ timestamp: new Date(), action, titles, remIds }, ...this.history].slice(
-      0,
-      MAX_HISTORY
-    );
+    this.history = [
+      { id: `h-${++historyIdCounter}`, timestamp: new Date(), action, titles, remIds },
+      ...this.history,
+    ].slice(0, MAX_HISTORY);
     this.emit();
   }
 

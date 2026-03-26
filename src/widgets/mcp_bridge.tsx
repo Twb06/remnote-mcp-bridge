@@ -564,25 +564,19 @@ function AutomationBridgeWidget() {
           <div style={{ maxHeight: '120px', overflowY: 'auto' }}>
             {history.map((entry, index) => {
               const showExpand = entry.titles.length > 1;
-              const rowKey = `${entry.timestamp.getTime()}-${entry.action}-${entry.remIds?.[0] ?? ''}`;
+              const rowKey = entry.id;
               const isExpanded = !!expandedRows[rowKey];
 
               const toggleExpand = () => {
                 if (showExpand) {
                   setExpandedRows((prev) => {
-                    // Build the set of valid keys based on the current history,
-                    // so we can drop entries for rows that are no longer present.
-                    const validKeys = new Set(
-                      history.map((h) => `${h.timestamp.getTime()}-${h.action}-${h.remIds?.[0] ?? ''}`)
-                    );
-
+                    const validKeys = new Set(history.map((h) => h.id));
                     const next: typeof prev = {};
                     for (const key of Object.keys(prev)) {
                       if (validKeys.has(key)) {
                         next[key] = prev[key];
                       }
                     }
-
                     next[rowKey] = !prev[rowKey];
                     return next;
                   });
