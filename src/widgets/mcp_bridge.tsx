@@ -100,14 +100,14 @@ function HistoryActionRow({
         style={{
           color:
             action === 'create'
-               ? '#22c55e'
-               : action === 'update'
-                 ? '#3b82f6'
-                 : action === 'journal'
-                   ? '#8b5cf6'
-                   : action === 'search'
-                     ? '#f59e0b'
-                     : '#6b7280',
+              ? '#22c55e'
+              : action === 'update'
+                ? '#3b82f6'
+                : action === 'journal'
+                  ? '#8b5cf6'
+                  : action === 'search'
+                    ? '#f59e0b'
+                    : '#6b7280',
           fontWeight: 600,
           width: isChild ? '24px' : '28px',
           minWidth: isChild ? '24px' : '28px',
