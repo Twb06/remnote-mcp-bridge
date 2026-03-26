@@ -7,6 +7,15 @@ Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Refactored `HistoryActionRow` into a declarative, decoupled React component, replacing imperative `e.currentTarget.style` DOM mutations to ensure hover states persist correctly across re-renders.
+- Inlined the "Copy Reference" SVG icon directly into a local reusable component (`src/widgets/icons.tsx`).
+
+### Fixed
+
+- Fixed a bug where history row expansion state misaligned when new entries were added by replacing index-based React keys with a stable `rowKey` derived from the entry's timestamp, action, and `remId`.
+
 ### Documentation
 
 - Added a dedicated pull request guide covering required docs, tests, cross-repo parity, integration-test updates, and target-branch sync expectations.
