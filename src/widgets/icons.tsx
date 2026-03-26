@@ -1,5 +1,3 @@
-import React from 'react';
-
 export function CopyIcon({
   width = 16,
   height = 16,
