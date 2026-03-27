@@ -31,6 +31,7 @@ import {
 } from './runtime-ui-bridge';
 import { buildConnectionUiState } from './connection-ui';
 import { withScopedLogPrefix } from '../logging';
+import { CopyIcon } from './icons';
 
 function createBridgeUiCommand(
   kind: BridgeUiCommand['kind'],
@@ -45,12 +46,159 @@ function createBridgeUiCommand(
   } as BridgeUiCommand;
 }
 
-function AutomationBridgeWidget() {
+const ACTION_ICONS: Record<HistoryEntry['action'], string> = {
+  create: '+',
+  update: '~',
+  journal: '#',
+  search: '?',
+  read: '>',
+};
+
+export function reconcileExpandedRows(
+  expandedRows: Record<string, boolean>,
+  history: Pick<HistoryEntry, 'id'>[]
+): Record<string, boolean> {
+  const validHistoryIds = new Set(history.map((entry) => entry.id));
+  let changed = false;
+  const nextExpandedRows: Record<string, boolean> = {};
+
+  for (const [rowKey, isExpanded] of Object.entries(expandedRows)) {
+    if (!isExpanded || !validHistoryIds.has(rowKey)) {
+      changed = true;
+      continue;
+    }
+
+    nextExpandedRows[rowKey] = true;
+  }
+
+  if (!changed && Object.keys(nextExpandedRows).length === Object.keys(expandedRows).length) {
+    return expandedRows;
+  }
+
+  return nextExpandedRows;
+}
+
+function HistoryActionRow({
+  isChild,
+  title,
+  remId,
+  action,
+  timestamp,
+  showExpandIcon,
+  itemCount,
+  onClickRow,
+  onOpenRem,
+  onCopyReference,
+}: {
+  isChild: boolean;
+  title: string;
+  remId: string | undefined;
+  action: HistoryEntry['action'];
+  timestamp: Date;
+  showExpandIcon: boolean;
+  itemCount: number;
+  onClickRow?: () => void;
+  onOpenRem: (e: React.MouseEvent, remId: string) => void;
+  onCopyReference: (e: React.MouseEvent, remId: string) => void;
+}) {
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <div
+      data-history-row={isChild ? 'child' : 'parent'}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onClick={onClickRow}
+      style={{
+        padding: isChild ? '6px 10px 6px 36px' : '6px 10px',
+        fontSize: '11px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        cursor: onClickRow ? 'pointer' : 'default',
+        transition: 'background-color 0.2s',
+        position: 'relative',
+        backgroundColor: isHovered ? 'rgba(0,0,0,0.02)' : 'transparent',
+      }}
+    >
+      <span
+        style={{
+          color:
+            action === 'create'
+              ? '#22c55e'
+              : action === 'update'
+                ? '#3b82f6'
+                : action === 'journal'
+                  ? '#8b5cf6'
+                  : action === 'search'
+                    ? '#f59e0b'
+                    : '#6b7280',
+          fontWeight: 600,
+          width: isChild ? '24px' : '28px',
+          minWidth: isChild ? '24px' : '28px',
+          whiteSpace: 'nowrap',
+          display: 'flex',
+          overflow: 'hidden',
+          alignItems: 'center',
+          justifyContent: isChild ? 'center' : 'flex-start',
+          gap: '2px',
+        }}
+      >
+        {ACTION_ICONS[action]}
+        {showExpandIcon && <span style={{ fontSize: '10px' }}>{itemCount}</span>}
+      </span>
+      <span style={{ color: '#6b7280', flexShrink: 0 }}>
+        {timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+      </span>
+      <span
+        onClick={(e) => {
+          if (remId) onOpenRem(e, remId);
+        }}
+        style={{
+          flex: 1,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          color: '#374151',
+          textDecoration: 'none',
+          cursor: remId ? 'pointer' : 'inherit',
+        }}
+      >
+        {title}
+      </span>
+
+      {/* Actions panel */}
+      <div
+        style={{
+          display: 'flex',
+          gap: '4px',
+          opacity: isHovered ? '0.85' : '0',
+          maxWidth: isHovered ? '50px' : '0px',
+          overflow: 'hidden',
+          transition: 'all 0.2s',
+          alignItems: 'center',
+        }}
+      >
+        {remId && (
+          <span
+            onClick={(e) => onCopyReference(e, remId)}
+            title="Copy Reference"
+            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+          >
+            <CopyIcon />
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function AutomationBridgeWidget() {
   const plugin = usePlugin();
   const lastSnapshotSignatureRef = useRef<string | null>(null);
   const lastSettingsSignatureRef = useRef<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
-  const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
+  const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
   const [snapshot, setSnapshot] = useState<BridgeRuntimeSnapshot>({
     status: 'disconnected',
     retryPhase: 'idle',
@@ -240,14 +388,9 @@ function AutomationBridgeWidget() {
   const history = snapshot.history;
   const connectionUi = buildConnectionUiState(snapshot, now);
 
-  // Action icons for history
-  const actionIcons: Record<HistoryEntry['action'], string> = {
-    create: '+',
-    update: '~',
-    journal: '#',
-    search: '?',
-    read: '>',
-  };
+  useEffect(() => {
+    setExpandedRows((prev) => reconcileExpandedRows(prev, history));
+  }, [history]);
 
   const handleOpenRem = useCallback(
     async (e: React.MouseEvent, remId: string) => {
@@ -278,139 +421,6 @@ function AutomationBridgeWidget() {
     },
     [plugin]
   );
-
-  const renderActionRow = (
-    isChild: boolean,
-    title: string,
-    remId: string | undefined,
-    action: HistoryEntry['action'],
-    timestamp: Date,
-    showExpandIcon: boolean,
-    itemCount: number,
-    onClickRow?: () => void
-  ) => {
-    return (
-      <div
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.02)';
-          const actions = e.currentTarget.querySelector('.row-actions') as HTMLElement | null;
-          if (actions) {
-            actions.style.opacity = '0.85';
-            actions.style.maxWidth = '50px';
-          }
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = 'transparent';
-          const actions = e.currentTarget.querySelector('.row-actions') as HTMLElement | null;
-          if (actions) {
-            actions.style.opacity = '0';
-            actions.style.maxWidth = '0px';
-          }
-        }}
-        onClick={onClickRow}
-        style={{
-          padding: isChild ? '6px 10px 6px 36px' : '6px 10px',
-          fontSize: '11px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          cursor: onClickRow ? 'pointer' : 'default',
-          transition: 'background-color 0.2s',
-          position: 'relative',
-        }}
-      >
-        <span
-          style={{
-            color:
-              action === 'create'
-                ? '#22c55e'
-                : action === 'update'
-                  ? '#3b82f6'
-                  : action === 'journal'
-                    ? '#8b5cf6'
-                    : action === 'search'
-                      ? '#f59e0b'
-                      : '#6b7280',
-            fontWeight: 600,
-            width: isChild ? '24px' : '28px',
-            minWidth: isChild ? '24px' : '28px',
-            whiteSpace: 'nowrap',
-            display: 'flex',
-            overflow: 'hidden',
-            alignItems: 'center',
-            justifyContent: isChild ? 'center' : 'flex-start',
-            gap: '2px',
-          }}
-        >
-          {actionIcons[action]}
-          {showExpandIcon && <span style={{ fontSize: '10px' }}>{itemCount}</span>}
-        </span>
-        <span style={{ color: '#6b7280', flexShrink: 0 }}>
-          {timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </span>
-        <span
-          onClick={(e) => {
-            if (remId) handleOpenRem(e, remId);
-          }}
-          style={{
-            flex: 1,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            color: '#374151',
-            textDecoration: 'none',
-            cursor: remId ? 'pointer' : 'inherit',
-          }}
-        >
-          {title}
-        </span>
-
-        {/* Actions panel */}
-        <div
-          className="row-actions"
-          style={{
-            display: 'flex',
-            gap: '4px',
-            opacity: 0,
-            maxWidth: '0px',
-            overflow: 'hidden',
-            transition: 'all 0.2s',
-            alignItems: 'center',
-          }}
-        >
-          {remId && (
-            <span
-              onClick={(e) => handleCopyReference(e, remId)}
-              title="Copy Reference"
-              style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-            >
-              <span
-                data-icon="copy-v2"
-                className="inline-block"
-                style={{
-                  width: '16px',
-                  minWidth: '16px',
-                  height: '16px',
-                  minHeight: '16px',
-                  backgroundColor: 'currentColor',
-                  maskImage:
-                    'url(https://www.remnote.com/offline_assets/svg_icons/uncolored/copy-v2.svg)',
-                  maskRepeat: 'no-repeat',
-                  maskPosition: 'center center',
-                  maskSize: 'contain',
-                  WebkitMaskImage:
-                    'url(https://www.remnote.com/offline_assets/svg_icons/uncolored/copy-v2.svg)',
-                  WebkitMaskRepeat: 'no-repeat',
-                  WebkitMaskPosition: 'center center',
-                  WebkitMaskSize: 'contain',
-                }}
-              ></span>
-            </span>
-          )}
-        </div>
-      </div>
-    );
-  };
 
   return (
     <div style={{ padding: '12px', fontFamily: 'system-ui, sans-serif', fontSize: '13px' }}>
@@ -584,18 +594,29 @@ function AutomationBridgeWidget() {
           <div style={{ maxHeight: '120px', overflowY: 'auto' }}>
             {history.map((entry, index) => {
               const showExpand = entry.titles.length > 1;
-              const isExpanded = !!expandedRows[index];
-              //const isLast = index === history.length - 1;
+              const rowKey = entry.id;
+              const isExpanded = !!expandedRows[rowKey];
 
               const toggleExpand = () => {
                 if (showExpand) {
-                  setExpandedRows((prev) => ({ ...prev, [index]: !prev[index] }));
+                  setExpandedRows((prev) => {
+                    const nextExpandedRows = reconcileExpandedRows(prev, history);
+
+                    if (nextExpandedRows[rowKey]) {
+                      const { [rowKey]: _collapsedRow, ...collapsedRows } = nextExpandedRows;
+                      return collapsedRows;
+                    }
+
+                    return { ...nextExpandedRows, [rowKey]: true };
+                  });
                 }
               };
 
               return (
                 <div
-                  key={index}
+                  key={rowKey}
+                  data-history-entry-id={rowKey}
+                  data-history-expanded={isExpanded ? 'true' : 'false'}
                   style={{
                     borderBottom: index < history.length - 1 ? 'none' : '1px solid #e5e7eb',
                     display: 'flex',
@@ -603,16 +624,18 @@ function AutomationBridgeWidget() {
                   }}
                 >
                   {/* Main Row */}
-                  {renderActionRow(
-                    false,
-                    entry.titles[0],
-                    entry.remIds?.[0],
-                    entry.action,
-                    entry.timestamp,
-                    showExpand && !isExpanded,
-                    entry.titles.length,
-                    showExpand ? toggleExpand : undefined
-                  )}
+                  <HistoryActionRow
+                    isChild={false}
+                    title={entry.titles[0]}
+                    remId={entry.remIds?.[0]}
+                    action={entry.action}
+                    timestamp={entry.timestamp}
+                    showExpandIcon={showExpand && !isExpanded}
+                    itemCount={entry.titles.length}
+                    onClickRow={showExpand ? toggleExpand : undefined}
+                    onOpenRem={handleOpenRem}
+                    onCopyReference={handleCopyReference}
+                  />
 
                   {/* Expanded rows */}
                   <div
@@ -630,16 +653,17 @@ function AutomationBridgeWidget() {
                           const remId = entry.remIds?.[actualIdx];
                           return (
                             <React.Fragment key={actualIdx}>
-                              {renderActionRow(
-                                true,
-                                title,
-                                remId,
-                                entry.action,
-                                entry.timestamp,
-                                false,
-                                0,
-                                undefined
-                              )}
+                              <HistoryActionRow
+                                isChild={true}
+                                title={title}
+                                remId={remId}
+                                action={entry.action}
+                                timestamp={entry.timestamp}
+                                showExpandIcon={false}
+                                itemCount={0}
+                                onOpenRem={handleOpenRem}
+                                onCopyReference={handleCopyReference}
+                              />
                             </React.Fragment>
                           );
                         })}

@@ -12,7 +12,17 @@ Versioning](https://semver.org/spec/v2.0.0.html).
   column filtering.
 
 ### Changed
+- Refactored `HistoryActionRow` into a declarative, decoupled React component, replacing imperative
+  `e.currentTarget.style` DOM mutations to ensure hover states persist correctly across re-renders.
+- Inlined the "Copy Reference" SVG icon directly into a local reusable component (`src/widgets/icons.tsx`).
 - Updated `read_table` bridge payloads to require exactly one explicit identifier: `tableRemId` or `tableTitle`.
+
+### Fixed
+- Fixed a bug where history row expansion state misaligned when new entries were added by replacing index-based React
+  keys with a stable `rowKey` derived from the entry's timestamp, action, and `remId`.
+- Fixed recent-actions expansion state so open rows stay attached to their history entries as new actions arrive, and
+  stale expansion state is pruned as older entries roll off.
+- Improved `read_table` title lookup for Advanced Tables nested under wrapper/container rems.
 
 ### Documentation
 - Added a dedicated pull request guide covering required docs, tests, cross-repo parity, integration-test updates,
@@ -28,9 +38,6 @@ Versioning](https://semver.org/spec/v2.0.0.html).
   first, and ask for a bridge restart after bridge-code changes before reruns.
 - Clarified that switching between CLI and MCP server live integration tests requires stopping the other companion
   process first because both compete for the same WebSocket port.
-
-### Fixed
-- Improved `read_table` title lookup for Advanced Tables nested under wrapper/container rems.
 
 ### Attribution
 
