@@ -10,6 +10,14 @@ Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 - Added weekly Dependabot updates for npm dependencies and GitHub Actions workflow references.
 
+### Changed
+- Upgraded the bridge's Node.js build, test, lint, and CSS tooling to current package lines, including Vitest 4,
+  ESLint 10, TypeScript 6, Tailwind 4, and the latest Webpack 5 companion packages.
+- Declared build-time dependencies that newer toolchains no longer provide transitively (`@eslint/js`,
+  `@tailwindcss/postcss`, and `glob`) so local installs remain reproducible.
+- Kept `react` and `react-dom` on 17.x because `@remnote/plugin-sdk@0.0.46` still declares React 17 peer
+  compatibility.
+
 ## [0.11.0] - 2026-03-27
 
 ### Added

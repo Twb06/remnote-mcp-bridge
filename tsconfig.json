@@ -8,6 +8,7 @@
     "strictNullChecks": true,
     "noEmit": true,
     "allowJs": true,
+    "ignoreDeprecations": "6.0",
     "skipLibCheck": true,
     "isolatedModules": true,
     "esModuleInterop": true
