@@ -13,6 +13,9 @@ Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Documentation
 - Updated the bridge search/read contract and README to document readable tag metadata on note retrieval surfaces.
+- Corrected the Developer Console debugging guides to explain that the working `localhost:8080` context is the
+  non-highlighted plugin runtime window, not the visible Automation Bridge sidebar iframe, and refreshed the
+  screenshots accordingly.
 
 ## [0.12.0] - 2026-04-09
 
