@@ -772,6 +772,19 @@ describe('RemAdapter', () => {
       expect(result.results[0].tags).toEqual(['work', 'urgent']);
     });
 
+    it('should include tags in search results when getTagRems returns tag rem objects', async () => {
+      plugin.clearTestData();
+      const workTag = plugin.addTestRem('tag_work_rems', 'work');
+      const urgentTag = plugin.addTestRem('tag_urgent_rems', 'urgent');
+      const rem = plugin.addTestRem('tagged_search_rems', 'Tagged Search Note');
+      rem.setTagRemsMock([workTag, urgentTag]);
+
+      plugin.search.search.mockResolvedValueOnce([rem]);
+
+      const result = await adapter.search({ query: 'Tagged' });
+      expect(result.results[0].tags).toEqual(['work', 'urgent']);
+    });
+
     it('should include tags in search results when getTags returns tag rem objects', async () => {
       plugin.clearTestData();
       const workTag = plugin.addTestRem('tag_work_object', 'work');
@@ -1216,6 +1229,19 @@ describe('RemAdapter', () => {
       expect(result.tags).toEqual(['work', 'urgent']);
     });
 
+    it('should include tags on read results when getTagRems returns tag rem objects', async () => {
+      const workTag = plugin.addTestRem('read_tag_work_rems', 'work');
+      const urgentTag = plugin.addTestRem('read_tag_urgent_rems', 'urgent');
+      const rem = plugin.addTestRem('tagged_read_rems', 'Tagged Read Note');
+      rem.setTagRemsMock([workTag, urgentTag]);
+
+      const result = await adapter.readNote({
+        remId: 'tagged_read_rems',
+        includeContent: 'none',
+      });
+      expect(result.tags).toEqual(['work', 'urgent']);
+    });
+
     it('should include tags on read results when getTags returns tag rem objects', async () => {
       const workTag = plugin.addTestRem('read_tag_work_object', 'work');
       const urgentTag = plugin.addTestRem('read_tag_urgent_object', 'urgent');
@@ -1229,9 +1255,10 @@ describe('RemAdapter', () => {
       expect(result.tags).toEqual(['work', 'urgent']);
     });
 
-    it('should log child metadata when getTags is missing on read results', async () => {
+    it('should log child metadata when no reverse tag-read method exists on read results', async () => {
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const rem = plugin.addTestRem('tagged_read_debug', 'Tagged Read Debug Note');
+      rem.getTagRems = undefined as unknown as typeof rem.getTagRems;
       rem.getTags = undefined as unknown as typeof rem.getTags;
       (plugin.rem as Record<string, unknown>).getAll = vi.fn(async () => []);
 
@@ -1244,11 +1271,12 @@ describe('RemAdapter', () => {
 
       expect(warnSpy).toHaveBeenCalledWith(
         expect.stringContaining(
-          'Tag read unavailable for rem tagged_read_debug: getTags() is missing'
+          'Tag read unavailable for rem tagged_read_debug: neither getTagRems() nor getTags() exists'
         ),
         expect.objectContaining({
           availableTagMethods: expect.arrayContaining([
             'addTag',
+            'getTagRems',
             'getTagPropertyValue',
             'getTags',
             'removeTag',
@@ -1261,6 +1289,22 @@ describe('RemAdapter', () => {
             'isPowerupSlot',
             'removeTag',
           ]),
+          tagMethodChain: expect.arrayContaining([
+            expect.objectContaining({
+              constructorName: 'MockRem',
+              methods: expect.arrayContaining(['getTagRems', 'getTags']),
+            }),
+          ]),
+          tagReadMethodPresence: {
+            getTagRems: {
+              available: false,
+              inherited: false,
+            },
+            getTags: {
+              available: false,
+              inherited: false,
+            },
+          },
           pluginRemNamespaceMethods: expect.arrayContaining(['findByName', 'findOne', 'getAll']),
           pluginRemCapabilities: {
             hasGetAll: true,

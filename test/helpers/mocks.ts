@@ -100,6 +100,7 @@ export class MockRem implements Partial<PluginRem> {
   private _practiceDirection: 'forward' | 'backward' | 'both' | 'none' = 'none';
   private _aliases: MockRem[] = [];
   private _taggedRems: MockRem[] = [];
+  private _tagRems: MockRem[] = [];
   private _isPowerupProperty = false;
   private _isPowerupPropertyListItem = false;
   private _isPowerupSlot = false;
@@ -148,6 +149,14 @@ export class MockRem implements Partial<PluginRem> {
 
   async taggedRem(): Promise<MockRem[]> {
     return this._taggedRems;
+  }
+
+  setTagRemsMock(tagRems: MockRem[]): void {
+    this._tagRems = tagRems;
+  }
+
+  async getTagRems(): Promise<MockRem[]> {
+    return this._tagRems;
   }
 
   setPowerupPropertyMock(val: boolean): void {

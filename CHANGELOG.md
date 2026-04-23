@@ -8,18 +8,25 @@ Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+
 - Added optional `tags` metadata to `search`, `search_by_tag`, and `read_note`, including structured child nodes
   when `includeContent: "structured"` is used.
 
 ### Fixed
+
+- Prefer `getTagRems()` for reverse tag readback on `read_note` and plain `search`, while keeping `getTags()`
+  as a compatibility fallback for SDK/runtime variants.
 - Improved tag readback compatibility so `search` and `read_note` can resolve tags when the live SDK returns either
   tag IDs or tag Rem objects, and emit adapter diagnostics when the tag-read surface is unavailable or unexpected.
 - Expanded missing-tag diagnostics to include metadata-related Rem methods and child powerup/property flags so live
   DevTools probing can reveal whether applied tags are encoded as hidden metadata children.
 - Expanded the same diagnostics to include `plugin.rem` namespace capabilities, especially whether a live
   `plugin.rem.getAll()` fallback is available for building a reverse tag index.
+- Expanded reverse tag-read diagnostics to report prototype-chain method discovery and per-method outcomes for
+  `getTagRems()` / `getTags()` probing in live RemNote.
 
 ### Documentation
+
 - Updated the bridge search/read contract and README to document readable tag metadata on note retrieval surfaces.
 - Corrected the Developer Console debugging guides to explain that the working `localhost:8080` context is the
   non-highlighted plugin runtime window, not the visible Automation Bridge sidebar iframe, and refreshed the
@@ -30,6 +37,7 @@ Versioning](https://semver.org/spec/v2.0.0.html).
 ## [0.12.0] - 2026-04-09
 
 ### Changed
+
 - Updated the bridge development toolchain to current major package lines, including Vitest 4, ESLint 10,
   TypeScript 6, Tailwind 4, and newer Webpack 5 companion packages.
 - Declared build-time dependencies explicitly (`@eslint/js`, `@tailwindcss/postcss`, and `glob`) so local installs
@@ -40,26 +48,31 @@ Versioning](https://semver.org/spec/v2.0.0.html).
 ## [0.11.0] - 2026-03-27
 
 ### Added
+
 - Added bridge support for `read_table`, including Advanced Table lookup by Rem ID or exact title, pagination, and
   column filtering.
 
 ### Changed
+
 - Updated `read_table` bridge payloads to require exactly one explicit identifier: `tableRemId` or `tableTitle`.
 - Tightened the sidebar connection card to show bridge version, optional `dev` install marker, and connected
   companion identity/version with less explanatory text while keeping a brief connection-direction hint when
   disconnected.
 
 ### Fixed
+
 - Fixed Recent Actions expansion so expanded rows stay attached to the correct history entry as new actions arrive.
 - Improved `read_table` title lookup for Advanced Tables nested under wrapper/container rems.
 
 ## [0.10.2] - 2026-03-25
 
 ### Added
+
 - Added interactive history entries: expandable child items view, hover actions panel with copy-reference button, and
   click-to-open behavior on titles (thanks to @Twb06).
 
 ### Changed
+
 - Raised the local tooling baseline to Node 20.19.0 for consistent package metadata and developer environment checks.
 
 ## [0.10.0] - 2026-03-18
@@ -113,6 +126,7 @@ Versioning](https://semver.org/spec/v2.0.0.html).
 - Fixed an issue where structural markdown elements (headers, ordered lists) on the first line of content were not being parsed correctly by the RemNote SDK. Implemented a "Dummy Root Strategy" using a plain text root to ensure robust hierarchical parsing for all markdown structures.
 
 ### Changed
+
 - Standardized mutating actions (`createNote`, `updateNote`, `appendJournal`) to return plural response format `{ remIds, titles }`.
 - Refined tag application rules with hierarchical markdown: tags are only applied to the created root or top-level Rems, not to all nested descendants.
 - Aligned bridge docs/tests with the unified `create_note` contract and added top-level content-only create coverage.

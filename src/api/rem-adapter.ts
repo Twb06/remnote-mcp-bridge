@@ -211,6 +211,19 @@ type TagReferenceLike =
       text?: RichTextInterface;
     };
 
+interface TagReadAttemptSnapshot {
+  method: 'getTagRems' | 'getTags';
+  available: boolean;
+  inherited: boolean;
+  outcome: 'skipped' | 'empty' | 'non-array' | 'error' | 'resolved';
+  resultCount?: number;
+  resultSample?: Record<string, unknown>[];
+  error?: {
+    name?: string;
+    message: string;
+  };
+}
+
 interface TagMetadataChildSnapshot {
   remId: string;
   title: string;
@@ -495,43 +508,109 @@ export class RemAdapter {
   /**
    * Resolve human-readable tag names for a Rem.
    *
-   * The SDK typing in this repo does not clearly expose a stable tag-read method shape, so this
-   * helper uses feature detection and accepts either tag IDs or tag Rem-like objects.
+   * The live SDK has exposed multiple reverse tag-read shapes across versions/runtimes. Prefer
+   * `getTagRems()` when available, but keep `getTags()` as a compatibility fallback.
    */
   private async getTagNames(rem: PluginRem, tagNameCache: TagNameCache): Promise<string[]> {
-    const getTags = (
-      rem as unknown as { getTags?: () => TagReferenceLike[] | Promise<TagReferenceLike[]> }
-    ).getTags;
-    if (typeof getTags !== 'function') {
+    const tagReadMethods: Array<{
+      name: 'getTagRems' | 'getTags';
+      fn?: () => TagReferenceLike[] | Promise<TagReferenceLike[]>;
+    }> = [
+      {
+        name: 'getTagRems',
+        fn: (
+          rem as unknown as { getTagRems?: () => TagReferenceLike[] | Promise<TagReferenceLike[]> }
+        ).getTagRems,
+      },
+      {
+        name: 'getTags',
+        fn: (rem as unknown as { getTags?: () => TagReferenceLike[] | Promise<TagReferenceLike[]> })
+          .getTags,
+      },
+    ];
+
+    const availableMethods = tagReadMethods.filter(({ fn }) => typeof fn === 'function');
+    if (availableMethods.length === 0) {
       const metadataSnapshot = await this.collectTagMetadataSnapshot(rem);
       this.logTagDebugOnce(
-        `missing-getTags:${rem._id}`,
-        `Tag read unavailable for rem ${rem._id}: getTags() is missing`,
+        `missing-tag-read-methods:${rem._id}`,
+        `Tag read unavailable for rem ${rem._id}: neither getTagRems() nor getTags() exists`,
         metadataSnapshot
       );
       return [];
     }
 
-    let tagRefs: TagReferenceLike[];
-    try {
-      const resolved = await Promise.resolve(getTags.call(rem));
-      tagRefs = Array.isArray(resolved) ? resolved : [];
-      if (!Array.isArray(resolved)) {
+    const attempts: TagReadAttemptSnapshot[] = [];
+    let tagRefs: TagReferenceLike[] = [];
+    let resolvedMethod: 'getTagRems' | 'getTags' | null = null;
+
+    for (const { name, fn } of tagReadMethods) {
+      const availability = this.describeMethodAvailability(rem, name);
+      if (typeof fn !== 'function') {
+        attempts.push({
+          method: name,
+          available: false,
+          inherited: availability.inherited,
+          outcome: 'skipped',
+        });
+        continue;
+      }
+
+      try {
+        const resolved = await Promise.resolve(fn.call(rem));
+        if (!Array.isArray(resolved)) {
+          attempts.push({
+            method: name,
+            available: true,
+            inherited: availability.inherited,
+            outcome: 'non-array',
+            resultSample: [this.describeUnknownTagResult(resolved)],
+          });
+          this.logTagDebugOnce(
+            `non-array-${name}:${rem._id}`,
+            `Tag read via ${name}() returned a non-array result for rem ${rem._id}`,
+            {
+              method: name,
+              resolvedType: typeof resolved,
+              resolved,
+            }
+          );
+          continue;
+        }
+
+        attempts.push({
+          method: name,
+          available: true,
+          inherited: availability.inherited,
+          outcome: resolved.length === 0 ? 'empty' : 'resolved',
+          resultCount: resolved.length,
+          resultSample: resolved.slice(0, 3).map((tagRef) => this.describeTagReference(tagRef)),
+        });
+
+        if (resolved.length === 0) {
+          continue;
+        }
+
+        tagRefs = resolved;
+        resolvedMethod = name;
+        break;
+      } catch (error) {
+        attempts.push({
+          method: name,
+          available: true,
+          inherited: availability.inherited,
+          outcome: 'error',
+          error: this.describeError(error),
+        });
         this.logTagDebugOnce(
-          `non-array-getTags:${rem._id}`,
-          `Tag read returned a non-array result for rem ${rem._id}`,
-          {
-            resolvedType: typeof resolved,
-            resolved,
-          }
+          `throwing-${name}:${rem._id}`,
+          `Tag read via ${name}() failed for rem ${rem._id}`,
+          error
         );
       }
-    } catch (error) {
-      this.logTagDebugOnce(
-        `throwing-getTags:${rem._id}`,
-        `Tag read failed for rem ${rem._id}`,
-        error
-      );
+    }
+
+    if (tagRefs.length === 0) {
       return [];
     }
 
@@ -553,9 +632,11 @@ export class RemAdapter {
 
     if (tagRefs.length > 0 && results.length === 0) {
       this.logTagDebugOnce(
-        `unresolved-getTags:${rem._id}`,
+        `unresolved-tag-refs:${resolvedMethod ?? 'unknown'}:${rem._id}`,
         `Tag read returned values for rem ${rem._id}, but none could be resolved`,
         {
+          resolvedMethod,
+          attempts,
           references: tagRefs.map((tagRef) => this.describeTagReference(tagRef)),
           availableTagMethods: this.getAvailableTagMethods(rem),
         }
@@ -632,27 +713,97 @@ export class RemAdapter {
     };
   }
 
-  private getAvailableTagMethods(rem: PluginRem): string[] {
-    const prototype = Object.getPrototypeOf(rem) as object | null;
-    if (!prototype) return [];
+  private describeUnknownTagResult(value: unknown): Record<string, unknown> {
+    if (!value || typeof value !== 'object') {
+      return { kind: typeof value, value };
+    }
 
-    return Object.getOwnPropertyNames(prototype)
-      .filter((name) => name.toLowerCase().includes('tag'))
-      .sort();
+    return {
+      kind: 'object',
+      keys: Object.keys(value as Record<string, unknown>).sort(),
+    };
+  }
+
+  private describeMethodAvailability(
+    rem: PluginRem,
+    methodName: 'getTagRems' | 'getTags'
+  ): { available: boolean; inherited: boolean } {
+    const remRecord = rem as unknown as Record<string, unknown>;
+    const ownMethod = Object.prototype.hasOwnProperty.call(remRecord, methodName);
+    const method = remRecord[methodName];
+    return {
+      available: typeof method === 'function',
+      inherited: typeof method === 'function' && !ownMethod,
+    };
+  }
+
+  private describeError(error: unknown): { name?: string; message: string } {
+    if (error instanceof Error) {
+      return {
+        ...(error.name ? { name: error.name } : {}),
+        message: error.message,
+      };
+    }
+
+    return { message: String(error) };
+  }
+
+  private getPrototypeMethodChain(
+    rem: PluginRem,
+    matcher: (name: string) => boolean
+  ): Array<{ level: number; constructorName: string; methods: string[] }> {
+    const snapshots: Array<{ level: number; constructorName: string; methods: string[] }> = [];
+
+    let level = 0;
+    let prototype = Object.getPrototypeOf(rem) as object | null;
+    while (prototype && prototype !== Object.prototype) {
+      const methods = Object.getOwnPropertyNames(prototype)
+        .filter((name) => matcher(name))
+        .sort();
+      if (methods.length > 0) {
+        const constructorName =
+          typeof (prototype as { constructor?: { name?: string } }).constructor?.name === 'string'
+            ? (prototype as { constructor: { name: string } }).constructor.name
+            : '(anonymous)';
+        snapshots.push({ level, constructorName, methods });
+      }
+
+      prototype = Object.getPrototypeOf(prototype) as object | null;
+      level += 1;
+    }
+
+    return snapshots;
+  }
+
+  private getAvailableTagMethods(rem: PluginRem): string[] {
+    return [
+      ...new Set(
+        this.getPrototypeMethodChain(rem, (name) => name.toLowerCase().includes('tag')).flatMap(
+          ({ methods }) => methods
+        )
+      ),
+    ].sort();
   }
 
   private getAvailableMetadataMethods(rem: PluginRem): string[] {
-    const prototype = Object.getPrototypeOf(rem) as object | null;
-    if (!prototype) return [];
-
-    return Object.getOwnPropertyNames(prototype)
-      .filter((name) => /(tag|powerup|property|slot)/i.test(name))
-      .sort();
+    return [
+      ...new Set(
+        this.getPrototypeMethodChain(rem, (name) =>
+          /(tag|powerup|property|slot)/i.test(name)
+        ).flatMap(({ methods }) => methods)
+      ),
+    ].sort();
   }
 
   private async collectTagMetadataSnapshot(rem: PluginRem): Promise<{
     availableTagMethods: string[];
     availableMetadataMethods: string[];
+    tagMethodChain: Array<{ level: number; constructorName: string; methods: string[] }>;
+    metadataMethodChain: Array<{ level: number; constructorName: string; methods: string[] }>;
+    tagReadMethodPresence: {
+      getTagRems: { available: boolean; inherited: boolean };
+      getTags: { available: boolean; inherited: boolean };
+    };
     pluginRemNamespaceMethods: string[];
     pluginRemCapabilities: {
       hasGetAll: boolean;
@@ -682,6 +833,16 @@ export class RemAdapter {
     return {
       availableTagMethods: this.getAvailableTagMethods(rem),
       availableMetadataMethods: this.getAvailableMetadataMethods(rem),
+      tagMethodChain: this.getPrototypeMethodChain(rem, (name) =>
+        name.toLowerCase().includes('tag')
+      ),
+      metadataMethodChain: this.getPrototypeMethodChain(rem, (name) =>
+        /(tag|powerup|property|slot)/i.test(name)
+      ),
+      tagReadMethodPresence: {
+        getTagRems: this.describeMethodAvailability(rem, 'getTagRems'),
+        getTags: this.describeMethodAvailability(rem, 'getTags'),
+      },
       pluginRemNamespaceMethods: this.getPluginRemNamespaceMethods(),
       pluginRemCapabilities: this.getPluginRemCapabilities(),
       childMetadata,
