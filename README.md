@@ -31,10 +31,10 @@ This project is a bridge layer with two consumer paths:
 
 **For both paths always 2 components are required - the bridge and either the MCP server or the CLI app.**
 
-| Companion | Best fit | Typical client |
-|-----------|----------|----------------|
-| `remnote-mcp-server` | Conversational AI tool use via MCP | Claude Code, ChatGPT Apps, Claude Cowork, other MCP clients |
-| `remnote-cli` | Local automation and command-driven workflows | OpenClaw, shell scripts, local agents |
+| Companion            | Best fit                                      | Typical client                                              |
+| -------------------- | --------------------------------------------- | ----------------------------------------------------------- |
+| `remnote-mcp-server` | Conversational AI tool use via MCP            | Claude Code, ChatGPT Apps, Claude Cowork, other MCP clients |
+| `remnote-cli`        | Local automation and command-driven workflows | OpenClaw, shell scripts, local agents                       |
 
 **Version compatibility warning (`0.x` semver):** install a server/CLI version that matches your installed bridge
 plugin version (prefer the same minor line). See the [Bridge / Consumer Version Compatibility Guide](docs/guides/bridge-consumer-version-compatibility.md).
@@ -169,10 +169,6 @@ Guide](docs/guides/connection-lifecycle.md).
 
 ## Important Limitations
 
-### Tag Readback
-
-There is a current gap between the bridge contract and live RemNote SDK behavior for readable tag metadata on `read_note` and plain `search` results. See [Tag Readback Limitations](docs/tag-readback-limitations.md) for details.
-
 ### Single Connection
 
 The system enforces a **single RemNote plugin connection** to one companion process at a time. This means:
@@ -190,32 +186,32 @@ documentation](https://github.com/robert7/remnote-mcp-server#multi-agent-support
 
 Access plugin settings in RemNote via **Settings > Plugins > Automation Bridge (OpenClaw, CLI, MCP...)**:
 
-| Setting | Description | Default |
-|---------|-------------|---------|
-| Accept write operations | Allow write actions (`create_note`, `update_note`, `append_journal`) | `true` |
-| Accept replace operation | Allow destructive `update_note` replace operations | `false` |
-| Auto-tag created notes | Add a tag to notes created via bridge actions | `true` |
-| Auto-tag name | Tag name for auto-tagged created notes | `` |
-| Journal entry prefix | Optional prefix for journal entries | `` |
-| Add timestamp to journal | Include time in journal entries | `true` |
-| WebSocket server URL | Automation bridge server connection URL | `ws://127.0.0.1:3002` |
-| Default parent Rem ID | Parent for new notes (empty = root) | `` |
+| Setting                  | Description                                                          | Default               |
+| ------------------------ | -------------------------------------------------------------------- | --------------------- |
+| Accept write operations  | Allow write actions (`create_note`, `update_note`, `append_journal`) | `true`                |
+| Accept replace operation | Allow destructive `update_note` replace operations                   | `false`               |
+| Auto-tag created notes   | Add a tag to notes created via bridge actions                        | `true`                |
+| Auto-tag name            | Tag name for auto-tagged created notes                               | ``                    |
+| Journal entry prefix     | Optional prefix for journal entries                                  | ``                    |
+| Add timestamp to journal | Include time in journal entries                                      | `true`                |
+| WebSocket server URL     | Automation bridge server connection URL                              | `ws://127.0.0.1:3002` |
+| Default parent Rem ID    | Parent for new notes (empty = root)                                  | ``                    |
 
 ## Bridge Action Surface
 
 The bridge exposes this shared action surface to companion clients. The MCP server maps these actions to MCP tools, and
 the CLI maps them to commands:
 
-| Action | Description |
-|------|-------------|
-| `create_note` | Create notes, markdown trees, or flashcards with title, content, parent, and tags |
-| `search` | Search the knowledge base with query, filters, and note metadata (including tags) |
-| `search_by_tag` | Search by tag with ancestor context and content controls |
-| `read_note` | Read a note's metadata, tags, and content in markdown or structured form by ID |
-| `update_note` | Update title, append or replace content, add/remove tags |
-| `append_journal` | Add hierarchical markdown content to today's daily document |
-| `read_table` | Read Advanced Table columns, rows, and typed property metadata |
-| `get_status` | Check connection status |
+| Action           | Description                                                                       |
+| ---------------- | --------------------------------------------------------------------------------- |
+| `create_note`    | Create notes, markdown trees, or flashcards with title, content, parent, and tags |
+| `search`         | Search the knowledge base with query, filters, and note metadata (including tags) |
+| `search_by_tag`  | Search by tag with ancestor context and content controls                          |
+| `read_note`      | Read a note's metadata, tags, and content in markdown or structured form by ID    |
+| `update_note`    | Update title, append or replace content, add/remove tags                          |
+| `append_journal` | Add hierarchical markdown content to today's daily document                       |
+| `read_table`     | Read Advanced Table columns, rows, and typed property metadata                    |
+| `get_status`     | Check connection status                                                           |
 
 ## Usage
 
@@ -241,8 +237,8 @@ The sidebar panel provides persistent monitoring of bridge connection and activi
 
 Once everything is connected, you can use either companion path:
 
-- **MCP path:** *Create a note about the meeting we just had*
-- **MCP path:** *Find all my notes tagged with "Ideas" and summarize them*
+- **MCP path:** _Create a note about the meeting we just had_
+- **MCP path:** _Find all my notes tagged with "Ideas" and summarize them_
 - **CLI path:** `remnote-cli search "AI coding" --text`
 - **CLI path:** `remnote-cli create "Reading List" --content-file /tmp/reading-list.md --text`
 

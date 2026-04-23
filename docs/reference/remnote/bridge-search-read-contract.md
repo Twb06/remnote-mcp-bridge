@@ -51,12 +51,10 @@ contract keeps iterations safe and predictable.
 ### `tags` (optional)
 
 - `tags` is an array of human-readable tag names applied directly to the returned Rem.
-- Omitted when no tags exist or when the current SDK/runtime does not expose readable tag IDs.
+- Omitted when no tags exist or when returned tag Rems cannot be resolved to readable names.
 - Present in both search and read outputs.
 - In `search_by_tag`, `tags` belongs to the resolved target Rem that is returned, not necessarily the originally
   tagged descendant that caused the match.
-- Live RemNote runtime currently does not expose reliable reverse note -> tags lookup for `read_note` and plain
-  `search`; see [`../../tag-readback-limitations.md`](../../tag-readback-limitations.md).
 
 ### `remType`
 

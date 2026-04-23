@@ -763,8 +763,7 @@ describe('RemAdapter', () => {
       const workTag = plugin.addTestRem('tag_work', 'work');
       const urgentTag = plugin.addTestRem('tag_urgent', 'urgent');
       const rem = plugin.addTestRem('tagged_search', 'Tagged Search Note');
-      await rem.addTag(workTag._id);
-      await rem.addTag(urgentTag._id);
+      rem.setTagRemsMock([workTag, urgentTag]);
 
       plugin.search.search.mockResolvedValueOnce([rem]);
 
@@ -785,19 +784,6 @@ describe('RemAdapter', () => {
       expect(result.results[0].tags).toEqual(['work', 'urgent']);
     });
 
-    it('should include tags in search results when getTags returns tag rem objects', async () => {
-      plugin.clearTestData();
-      const workTag = plugin.addTestRem('tag_work_object', 'work');
-      const urgentTag = plugin.addTestRem('tag_urgent_object', 'urgent');
-      const rem = plugin.addTestRem('tagged_search_object', 'Tagged Search Note');
-      rem.getTags = vi.fn(async () => [workTag, urgentTag]) as unknown as typeof rem.getTags;
-
-      plugin.search.search.mockResolvedValueOnce([rem]);
-
-      const result = await adapter.search({ query: 'Tagged' });
-      expect(result.results[0].tags).toEqual(['work', 'urgent']);
-    });
-
     it('should omit aliases when empty', async () => {
       const result = await adapter.search({ query: 'note' });
       expect(result.results[0].aliases).toBeUndefined();
@@ -809,7 +795,7 @@ describe('RemAdapter', () => {
       const child = new MockRem('search_tags_struct_child', 'Tagged Child');
       const childTag = plugin.addTestRem('search_tags_child_tag', 'next-action');
       await child.setParent(parent);
-      await child.addTag(childTag._id);
+      child.setTagRemsMock([childTag]);
 
       plugin.search.search.mockResolvedValueOnce([parent]);
 
@@ -998,7 +984,7 @@ describe('RemAdapter', () => {
       const queryTag = plugin.addTestRem('tag_query', 'project', 'project');
       const targetTag = plugin.addTestRem('tag_target', 'work');
       const note = plugin.addTestRem('tag_target_note', 'Tagged target');
-      await note.addTag(targetTag._id);
+      note.setTagRemsMock([targetTag]);
       queryTag.setTaggedRemsMock([note]);
 
       const result = await adapter.searchByTag({ tag: 'project' });
@@ -1222,8 +1208,7 @@ describe('RemAdapter', () => {
       const workTag = plugin.addTestRem('read_tag_work', 'work');
       const urgentTag = plugin.addTestRem('read_tag_urgent', 'urgent');
       const rem = plugin.addTestRem('tagged_read', 'Tagged Read Note');
-      await rem.addTag(workTag._id);
-      await rem.addTag(urgentTag._id);
+      rem.setTagRemsMock([workTag, urgentTag]);
 
       const result = await adapter.readNote({ remId: 'tagged_read', includeContent: 'none' });
       expect(result.tags).toEqual(['work', 'urgent']);
@@ -1242,89 +1227,17 @@ describe('RemAdapter', () => {
       expect(result.tags).toEqual(['work', 'urgent']);
     });
 
-    it('should include tags on read results when getTags returns tag rem objects', async () => {
-      const workTag = plugin.addTestRem('read_tag_work_object', 'work');
-      const urgentTag = plugin.addTestRem('read_tag_urgent_object', 'urgent');
-      const rem = plugin.addTestRem('tagged_read_object', 'Tagged Read Note');
-      rem.getTags = vi.fn(async () => [workTag, urgentTag]) as unknown as typeof rem.getTags;
-
-      const result = await adapter.readNote({
-        remId: 'tagged_read_object',
-        includeContent: 'none',
-      });
-      expect(result.tags).toEqual(['work', 'urgent']);
-    });
-
-    it('should log child metadata when no reverse tag-read method exists on read results', async () => {
+    it('should log a concise warning when getTagRems is missing on read results', async () => {
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const rem = plugin.addTestRem('tagged_read_debug', 'Tagged Read Debug Note');
       rem.getTagRems = undefined as unknown as typeof rem.getTagRems;
-      rem.getTags = undefined as unknown as typeof rem.getTags;
-      (plugin.rem as Record<string, unknown>).getAll = vi.fn(async () => []);
-
-      const metadataChild = new MockRem('tagged_read_debug_child', 'Metadata Child');
-      metadataChild.setPowerupSlotMock(true);
-      metadataChild.setPowerupPropertyMock(true);
-      await metadataChild.setParent(rem);
 
       await adapter.readNote({ remId: 'tagged_read_debug', includeContent: 'none' });
 
       expect(warnSpy).toHaveBeenCalledWith(
         expect.stringContaining(
-          'Tag read unavailable for rem tagged_read_debug: neither getTagRems() nor getTags() exists'
-        ),
-        expect.objectContaining({
-          availableTagMethods: expect.arrayContaining([
-            'addTag',
-            'getTagRems',
-            'getTagPropertyValue',
-            'getTags',
-            'removeTag',
-            'taggedRem',
-          ]),
-          availableMetadataMethods: expect.arrayContaining([
-            'addTag',
-            'getTagPropertyValue',
-            'isPowerupProperty',
-            'isPowerupSlot',
-            'removeTag',
-          ]),
-          tagMethodChain: expect.arrayContaining([
-            expect.objectContaining({
-              constructorName: 'MockRem',
-              methods: expect.arrayContaining(['getTagRems', 'getTags']),
-            }),
-          ]),
-          tagReadMethodPresence: {
-            getTagRems: {
-              available: false,
-              inherited: false,
-            },
-            getTags: {
-              available: false,
-              inherited: false,
-            },
-          },
-          pluginRemNamespaceMethods: expect.arrayContaining(['findByName', 'findOne', 'getAll']),
-          pluginRemCapabilities: {
-            hasGetAll: true,
-            hasFindOne: true,
-            hasFindByName: true,
-          },
-          childMetadata: [
-            {
-              remId: 'tagged_read_debug_child',
-              title: 'Metadata Child',
-              flags: {
-                isProperty: false,
-                isPowerupProperty: true,
-                isPowerupPropertyListItem: false,
-                isPowerupSlot: true,
-                isPowerupEnum: false,
-              },
-            },
-          ],
-        })
+          'Tag read unavailable for rem tagged_read_debug: getTagRems() is missing'
+        )
       );
 
       warnSpy.mockRestore();
@@ -1342,7 +1255,7 @@ describe('RemAdapter', () => {
       const child = new MockRem('read_tags_struct_child', 'Tagged Child');
       const childTag = plugin.addTestRem('read_tags_child_tag', 'reference');
       await child.setParent(parent);
-      await child.addTag(childTag._id);
+      child.setTagRemsMock([childTag]);
 
       const result = await adapter.readNote({
         remId: 'read_tags_struct_parent',

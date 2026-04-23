@@ -18,10 +18,6 @@
 - [Execute Bridge Commands — Screenshot Walkthrough](guides/development-execute-bridge-commands-screenshots.md) — Visual step-by-step companion to the console guide above, with annotated screenshots.
 - [Pull Request Guide](guides/pull-request-guide.md) — Cross-repo PR policy and submission checklist for contributing to `remnote-mcp-bridge` and its companion repos.
 
-### Known Limitations
-
-- [Tag Readback Limitations](tag-readback-limitations.md) — Documents the current gap between the bridge contract and live RemNote SDK behavior for readable tag metadata on `read_note` and `search` results.
-
 ---
 
 ## Reference: RemNote Domain
